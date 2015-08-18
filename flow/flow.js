@@ -53,7 +53,7 @@ export default class Flow {
                         console.log("Retryable exception thrown, retrying.", 
                             "Attempt: " + this._numberRetries);
                     }
-    		   } else {
+               } else {
                 console.log("Exception thrown, failing..", e);
                 fail(this);
               }
