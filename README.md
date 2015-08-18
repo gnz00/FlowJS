@@ -28,7 +28,7 @@ The `Flow` executor expects a map of Symbols that represent the possible states 
 ```
 
 ### Activities
-At the core of the workflow, are `Activities`. Each `Activity` is single logical step in the workflow and is _ideally_ idempotent. Activities are stateless, they are passed the workflow's `Context` during execution.
+At the core of the workflow, are `Activities`. Each `Activity` is single logical step in the workflow and is _ideally_ idempotent. Activities are stateless, they are passed the workflow's `Context` during execution. To pass state between activities, subclass the context for your workflow to set/get state.
 
 The `Activity` class only has two properties:
 * Name, and
