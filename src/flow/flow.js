@@ -9,11 +9,15 @@ const debug = new Debug('flowjs:flow');
 class Flow extends EventEmitter {
     constructor(options) {
         super();
-        this._initialContext = this._context = options.context || new FlowContext();
+        this._initialContext = options.context || new FlowContext();
         this._decider = options.decider || new Decider();
         this._numberRetries = 0;
         this._isComplete = false;
         this._retryLimit = options.retryLimit || 3;
+        
+        this.setStore(options.store || {});
+        this.setContext(this._initialContext);
+        this.setGlobals(options.globals || {});
         debug(`Created new Flow with options: ${JSON.stringify(options)}`);
     }
 
@@ -32,6 +36,28 @@ class Flow extends EventEmitter {
 
     getContext() {
       return this._context;
+    }
+
+    setStore(store) {
+      this._store = Object.assign({}, store);
+      this.emit('storeChanged', store);
+    }
+
+    getStore() {
+      return this._store;
+    }
+
+    setGlobals(globals) {
+        if (this._globals) {
+            throw new Error('Attempted to set immutable property Globals.');
+        } else {
+            debug('Globals was set by reference. Be careful when setting values.');
+            this._globals = globals;
+        }
+    }
+
+    getGlobals() {
+      return this._globals;
     }
 
     currentRetry() {
@@ -53,18 +79,23 @@ class Flow extends EventEmitter {
         while(!this.isComplete()) {
             this.step();
         }
-        debug(`Flow complete`);
     }
 
     // Step through the workflow
     step() {
         debug(`Stepping flow - ${this.getContext().getState().toString()}`);
         if(this.getContext().getState() != this.getContext().getStates().END) {
+
             try {
                 var activityToExecute = this._decider.decide(this.getContext());
                 debug(`Starting next activity - ${activityToExecute.getName()}`);
-                activityToExecute.execute(this.getContext());
+                activityToExecute.execute([
+                    this.getContext(), 
+                    this.getStore(), 
+                    this.getGlobals()
+                ]);
                 debug(`Activity completed - ${activityToExecute.getName()}`);
+
             } catch (e) {
                 if (e.name === 'RetryableException') {
                     this._numberRetries++;
@@ -80,6 +111,7 @@ class Flow extends EventEmitter {
               }
             }
         } else {
+            debug(`Successfully completed the workflow.`);
             this::success(this);
         }
     }

@@ -23,20 +23,20 @@ const decider = new Decider(function(context) {
     }
 });
 
-const ActivityA = new Activity("ActivityA", function (context) {
+const ActivityA = new Activity("ActivityA", function (context, store, globals) {
     context.setState(context.getStates().B);
 });
 
-const ActivityB = new Activity("ActivityB", function (context) {
+const ActivityB = new Activity("ActivityB", function (context, store, globals) {
     throw new RetryableException('Retrying...');
     context.setState(context.getStates().END);
 });
 
-const ActivityC = new Activity("ActivityC", function (context) {
+const ActivityC = new Activity("ActivityC", function (context, store, globals) {
     context.setState(context.getStates().END);
 });
 
-const ActivityD = new Activity("ActivityD", function (context) {
+const ActivityD = new Activity("ActivityD", function (context, store, globals) {
     throw new Error('Random errorrrrr!')
 });
 
@@ -71,7 +71,7 @@ describe('Flow', () => {
     /** Instance Methods */
     describe('#start()', () => {
         it('accepts an initial context as the first parameter', () => {
-            const newContext = new FlowContext(state);
+            const newContext = new FlowContext(states);
             flow.start(newContext);
             assert(flow.getContext() instanceof FlowContext);
             // Assert that the context is not copied by reference
@@ -98,10 +98,10 @@ describe('Flow', () => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
-                        case state.START: return ActivityC;
+                        case states.START: return ActivityC;
                     }
                 }),
-                context: new FlowContext(state)
+                context: new FlowContext(states)
             });
             flow.on('success', (object) => {
                 assert(object instanceof Flow);
@@ -114,10 +114,10 @@ describe('Flow', () => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
-                        case state.START: return ActivityD;
+                        case states.START: return ActivityD;
                     }
                 }),
-                context: new FlowContext(state)
+                context: new FlowContext(states)
             });
             flow.on('error', (error, object) => {
                 assert(error instanceof Error);
