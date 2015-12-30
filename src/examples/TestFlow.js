@@ -21,10 +21,10 @@ class TestFlow {
         });
 
         var flowStates = {
-            START : Symbol("START"),
-            A : Symbol("A"),
-            B : Symbol("B"),
-            END : Symbol("END")
+            START : Symbol.for("START"),
+            A : Symbol.for("A"),
+            B : Symbol.for("B"),
+            END : Symbol.for("END")
         }
         
         var decider = new Decider(function(context){

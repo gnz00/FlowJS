@@ -1,5 +1,7 @@
 import RetryableException from "./retryableexception"
 import Debug from 'debug';
+import FlowContext from './flowcontext';
+import Decider from './decider';
 
 const debug = new Debug('flowjs:flow');
 
@@ -14,11 +16,12 @@ function fail(flow) {
 }
 
 export default class Flow {
-    constructor(decider, activitySet) {
-        this._context = null;
+    constructor(options) {
+        this._initialContext = options.context || new FlowContext();
+        this._decider = options.decider || new Decider();
         this._numberRetries = 0;
-        this._decider = decider;
-        this._isComplete = null;
+        this._isComplete = false;
+        this._retryLimit = options.retryLimit || 3;
     }
 
     isComplete() {
@@ -29,8 +32,15 @@ export default class Flow {
         this._isComplete = true;
     }
 
-    start(initialContext) {
-        this._context = initialContext;
+    reset() {
+      this._context = Object.assign({}, this._initialContext);
+      this._isComplete = false;
+    }
+
+    start(context) {
+        if (context) {
+            this._context = Object.assign({}, context);
+        }
         this._isComplete = false;
         while(!this.isComplete()) {
             this.step();
