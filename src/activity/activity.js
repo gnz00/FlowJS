@@ -1,4 +1,7 @@
 import RetryableException from '../flow/RetryableException'
+import Debug from 'debug';
+
+const debug = new Debug('flowjs:activity');
 
 export default class Activity {
 
@@ -15,8 +18,8 @@ export default class Activity {
         if(this._executeFn) {
             this._executeFn(flowContext);
         } else {
-            console.log("No implementation for Activity!");
-            throw Exception("Activity does not have an executeFn");
+            debug("No implementation for Activity!");
+            throw Exception("Activity does not have an executable function");
         }
     }
 }

@@ -1,16 +1,13 @@
-// Local modules.
-import Flow from './flow/flow'
-import RetryableException from './flow/retryableexception'
-import Decider from './flow/decider'
-import Activity from './activity/activity'
-import FlowContext from './flow/flowcontext'
+import {
+  Flow,
+  Activity,
+  Decider,
+  FlowContext,
+  RetryableException
+} from "../index";
 
-
-/**
-    Simple use case test.
-*/
-export default class FlowJS {
-    constructor() {
+class TestFlow {
+    constructor(flow, context) {
         // can be rewritten to accept a execute function, success handler, failure handler.
         var ActivityA = new Activity("ActivityA", function (context) {
             console.log("Executing ActivityA");
@@ -46,3 +43,5 @@ export default class FlowJS {
         this.flow.start(this.context);
     }
 }
+
+export default (new TestFlow()).run();

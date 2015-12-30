@@ -2,10 +2,21 @@
   "name": "flowjs",
   "version": "1.0.0",
   "description": "A simple library for executing in-memory workflows.",
-  "main": "FlowJS.js",
+  "main": "dist/flow",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run compile && mocha --compilers js:babel-core/register",
+    "prepublish": "npm run compile",
+    "compile": "./node_modules/babel-cli/bin/babel.js src/ -d dist/",
+    "start": "node dist/index"
   },
   "author": "bmays",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.3.17",
+    "babel-preset-es2015": "^6.3.13",
+    "babel-preset-stage-0": "^6.3.13"
+  },
+  "dependencies": {
+    "debug": "^2.2.0"
+  }
 }
