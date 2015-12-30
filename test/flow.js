@@ -44,6 +44,8 @@ Object.freeze(state);
 Object.freeze(decider);
 Object.freeze(ActivityA);
 Object.freeze(ActivityB);
+Object.freeze(ActivityC);
+Object.freeze(ActivityD);
 
 describe('Flow', () => {
     let flow;

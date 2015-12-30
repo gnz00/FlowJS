@@ -64,3 +64,12 @@ Example:
         }
     });
 ```
+
+### Debug
+Set DEBUG=flowjs:* to get debug output.
+
+### Events
+* success (Flow)
+* failure (Flow)
+* complete (Flow)
+* error (Error, Flow)
