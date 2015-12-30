@@ -7,7 +7,7 @@ import {
   RetryableException
 } from "../src/index";
 
-const state = {
+const states = {
     START : Symbol.for("START"),
     A : Symbol.for("A"),
     B : Symbol.for("B"),
@@ -17,9 +17,9 @@ const state = {
 
 const decider = new Decider(function(context) {
     switch(context.getState()) {
-        case state.START: return ActivityA;
-        case state.A: return ActivityA;
-        case state.B: return ActivityB;
+        case states.START: return ActivityA;
+        case states.A: return ActivityA;
+        case states.B: return ActivityB;
     }
 });
 
@@ -40,7 +40,7 @@ const ActivityD = new Activity("ActivityD", function (context) {
     throw new Error('Random errorrrrr!')
 });
 
-Object.freeze(state);
+Object.freeze(states);
 Object.freeze(decider);
 Object.freeze(ActivityA);
 Object.freeze(ActivityB);
@@ -53,7 +53,7 @@ describe('Flow', () => {
     beforeEach(() => {
         flow = new Flow({
             decider: decider,
-            context: new FlowContext(state),
+            context: new FlowContext(states),
             retryLimit: 3
         });
     }); 

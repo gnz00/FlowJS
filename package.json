@@ -1,12 +1,12 @@
 {
   "name": "@maysale01/flowjs",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/maysale01/FlowJS"
   },
   "description": "A simple library for executing in-memory workflows.",
-  "main": "dist/flow",
+  "main": "dist/index",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha --compilers js:babel-core/register",
     "prepublish": "npm run compile",

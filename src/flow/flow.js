@@ -1,9 +1,8 @@
 import RetryableException from './retryableException'
 import Debug from 'debug';
-import FlowContext from './flowcontext';
+import FlowContext from './flowContext';
 import Decider from './decider';
 import { EventEmitter } from 'events';
-import merge from 'lodash.merge';
 
 const debug = new Debug('flowjs:flow');
 
