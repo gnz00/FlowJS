@@ -7,6 +7,8 @@ import {
   RetryableException
 } from "../src/index";
 
+const globalCounter = 0;
+
 const states = {
     START : Symbol.for("START"),
     A : Symbol.for("A"),
@@ -40,6 +42,16 @@ const ActivityD = new Activity("ActivityD", function (context, store, globals) {
     throw new Error('Random errorrrrr!')
 });
 
+const ActivityE = new Activity("ActivityE", async function (context, store, globals) {
+    await new Promise((resolve, reject) => {
+        setTimeout(() => {
+            store.counter++;
+            context.setState(context.getStates().END);
+            resolve(globals.done());
+        }, 30);
+    });
+});
+
 Object.freeze(states);
 Object.freeze(decider);
 Object.freeze(ActivityA);
@@ -70,31 +82,31 @@ describe('Flow', () => {
 
     /** Instance Methods */
     describe('#start()', () => {
-        it('accepts an initial context as the first parameter', () => {
+        it('accepts an initial context as the first parameter', async () => {
             const newContext = new FlowContext(states);
-            flow.start(newContext);
+            await flow.start(newContext);
             assert(flow.getContext() instanceof FlowContext);
             // Assert that the context is not copied by reference
             assert(flow.getContext() !== newContext);
         });
 
-        it('triggers the complete event', (done) => {
+        it('triggers the complete event', async (done) => {
             flow.on('complete', (object) => {
                 assert(object instanceof Flow);
                 done();
             });
-            flow.start();
+            await flow.start();
         });
 
-        it('triggers the failure event', (done) => {
+        it('triggers the failure event', async (done) => {
             flow.on('failure', (object) => {
                 assert(object instanceof Flow);
                 done();
             });
-            flow.start();
+            await flow.start();
         });
 
-        it('triggers the success event', (done) => {
+        it('triggers the success event', async (done) => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
@@ -107,10 +119,10 @@ describe('Flow', () => {
                 assert(object instanceof Flow);
                 done();
             });
-            flow.start();
+            await flow.start();
         });
 
-        it('triggers the error event and has the correct callback parameters', (done) => {
+        it('triggers the error event and has the correct callback parameters', async (done) => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
@@ -124,32 +136,51 @@ describe('Flow', () => {
                 assert(object instanceof Flow);
                 done();
             });
-            flow.start();
+            await flow.start();
+        });
+
+        it('only executes asynchronous activities once', async (done) => {
+            flow = new Flow({
+                decider: new Decider(function(context) {
+                    switch(context.getState()) {
+                        case states.START: return ActivityE;
+                    }
+                }),
+                context: new FlowContext(states),
+                globals: { done: done },
+                store: { counter: 0 }
+            });
+            await flow.start();
+            assert(flow.getStore().counter === 1);
         });
     });
 
     describe('#step()', () => {
-        it('steps through the states', () => {
+        it('steps through the states', async () => {
             let context = flow.getContext();
             assert(context.getState() === context.getStates().START);
-            flow.step();
+            await flow.step();
             assert(context.getState() === context.getStates().B);
         });
 
-        it('increases the number of retries when an activity throws a RetryableException', () => {
+        it('increases the number of retries when an activity throws a RetryableException', async () => {
+            flow = new Flow({
+                decider: decider,
+                context: new FlowContext(states)
+            });
             assert(flow.currentRetry() === 0);
-            flow.step(); // ActivityA is successful
-            flow.step(); // ActivityB throws a RetryableException
+            await flow.step();
+            await flow.step(); 
             assert(flow.currentRetry() === 1);
         });
 
-        it('fails when the retry limit is hit', (done) => {
+        it('fails when the retry limit is hit', async (done) => {
             flow.on('failure', (object) => {
                 assert(object instanceof Flow);
                 done();
             });
             for(var i = 0; i < 5; i++) {
-                flow.step();
+                await flow.step();
             }
         });
     });

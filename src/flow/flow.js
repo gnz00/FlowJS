@@ -71,25 +71,25 @@ class Flow extends EventEmitter {
     }
 
     // Start the workflow with an optional new context
-    start(context) {
+    async start(context) {
         if (context) {
             this.setContext(context);
         }
         this._isComplete = false;
         while(!this.isComplete()) {
-            this.step();
+            await this.step();
         }
     }
 
     // Step through the workflow
-    step() {
+    async step() {
         debug(`Stepping flow - ${this.getContext().getState().toString()}`);
         if(this.getContext().getState() != this.getContext().getStates().END) {
 
             try {
                 var activityToExecute = this._decider.decide(this.getContext());
                 debug(`Starting next activity - ${activityToExecute.getName()}`);
-                activityToExecute.execute([
+                await activityToExecute.execute([
                     this.getContext(), 
                     this.getStore(), 
                     this.getGlobals()

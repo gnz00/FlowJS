@@ -15,18 +15,28 @@ const ActivityA = new Activity("ActivityA", function (context) {
 // ActivityB should update the context state
 const ActivityB = new Activity("ActivityB", function (context) {
     console.log("Executing ActivityB");
-
     if (Math.floor(Math.random() * 10) % 2 === 0) {
         throw new RetryableException();
     }
+    context.setState(context.getStates().C);
+});
 
-    context.setState(context.getStates().END);
+// ActivityC should update the context state
+const ActivityC = new Activity("ActivityC", async function (context) {
+    console.log("Executing ActivityC");
+    await new Promise((resolve, reject) => {
+        setTimeout(() => {
+            context.setState(context.getStates().END);
+            resolve();
+        }, 10000);
+    });
 });
 
 const states = {
     START : Symbol.for("START"),
     A : Symbol.for("A"),
     B : Symbol.for("B"),
+    C : Symbol.for("C"),
     END : Symbol.for("END")
 }
 
@@ -37,6 +47,7 @@ const flow = new Flow({
             case states.START: return ActivityA;
             case states.A: return ActivityA;
             case states.B: return ActivityB;
+            case states.C: return ActivityC;
         }
     })
 }); 
@@ -59,4 +70,6 @@ flow.on('error', (error, flowObject) => {
     console.log('Flow encountered an error.');
 });
 
-export default flow.start();
+export default (async () => {
+    await flow.start();
+})();

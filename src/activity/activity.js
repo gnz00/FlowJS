@@ -14,9 +14,9 @@ export default class Activity {
         return this._name;
     }
 
-    execute(params) {
+    async execute(params) {
         if(this._executeFn) {
-            this._executeFn(...params);
+            await this._executeFn(...params);
         } else {
             debug("No implementation for Activity!");
             throw new Error("Activity does not have an executable function");
