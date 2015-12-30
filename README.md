@@ -66,7 +66,7 @@ Example:
 ```
 
 ### Debug
-Set DEBUG=flowjs:* to get debug output.
+Set `DEBUG=flowjs:*` to get debug output.
 
 ### Events
 * success (Flow)

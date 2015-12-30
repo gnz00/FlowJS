@@ -1,6 +1,6 @@
 {
   "name": "flowjs",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "A simple library for executing in-memory workflows.",
   "main": "dist/flow",
   "scripts": {
@@ -9,7 +9,7 @@
     "compile": "./node_modules/babel-cli/bin/babel.js src/ -d dist/",
     "start": "node dist/index"
   },
-  "author": "bmays",
+  "author": "bmays, amays",
   "license": "ISC",
   "devDependencies": {
     "babel-cli": "^6.3.17",

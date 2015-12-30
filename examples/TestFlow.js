@@ -4,7 +4,7 @@ import {
   Decider,
   FlowContext,
   RetryableException
-} from "../index";
+} from "../src/index";
 
 // ActivityA should update the context state
 const ActivityA = new Activity("ActivityA", function (context) {
