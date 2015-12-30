@@ -1,4 +1,4 @@
-import RetryableException from '../flow/RetryableException'
+import RetryableException from '../flow/retryableException'
 import Debug from 'debug';
 
 const debug = new Debug('flowjs:activity');

@@ -18,6 +18,7 @@
     "mocha": "^2.3.4"
   },
   "dependencies": {
-    "debug": "^2.2.0"
+    "debug": "^2.2.0",
+    "events": "^1.1.0"
   }
 }

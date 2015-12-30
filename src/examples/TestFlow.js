@@ -6,42 +6,57 @@ import {
   RetryableException
 } from "../index";
 
-class TestFlow {
-    constructor(flow, context) {
-        // can be rewritten to accept a execute function, success handler, failure handler.
-        var ActivityA = new Activity("ActivityA", function (context) {
-            console.log("Executing ActivityA");
-            context.setState(context._states.B);
-        });
+// ActivityA should update the context state
+const ActivityA = new Activity("ActivityA", function (context) {
+    console.log("Executing ActivityA");
+    context.setState(context.getStates().B);
+});
 
-        var ActivityB = new Activity("ActivityB", function (context) {
-            console.log("Executing ActivityB");
-            throw new RetryableException();
-            context.setState(context._states.END);
-        });
+// ActivityB should update the context state
+const ActivityB = new Activity("ActivityB", function (context) {
+    console.log("Executing ActivityB");
 
-        var flowStates = {
-            START : Symbol.for("START"),
-            A : Symbol.for("A"),
-            B : Symbol.for("B"),
-            END : Symbol.for("END")
-        }
-        
-        var decider = new Decider(function(context){
-            switch(context.getState()) {
-                case flowStates.START: return ActivityA;
-                case flowStates.A: return ActivityA;
-                case flowStates.B: return ActivityB;
-            }
-        });
-
-        this.flow = new Flow(decider);
-        this.context = new FlowContext(flowStates);
+    if (Math.floor(Math.random() * 10) % 2 === 0) {
+        throw new RetryableException();
     }
-    
-    run() {
-        this.flow.start(this.context);
-    }
+
+    context.setState(context.getStates().END);
+});
+
+const states = {
+    START : Symbol.for("START"),
+    A : Symbol.for("A"),
+    B : Symbol.for("B"),
+    END : Symbol.for("END")
 }
 
-export default (new TestFlow()).run();
+const flow = new Flow({
+    context: new FlowContext(states),
+    decider: new Decider((context) => {
+        switch(context.getState()) {
+            case states.START: return ActivityA;
+            case states.A: return ActivityA;
+            case states.B: return ActivityB;
+        }
+    })
+}); 
+
+flow.on('success', (flowObject) => {
+    console.log('Flow succeeded.');
+});
+
+flow.on('failure', (flowObject) => {
+    console.log('Flow failed.');
+});
+
+// Will always get called
+flow.on('complete', (flowObject) => {
+    console.log('Flow has finished executing.');
+});
+
+flow.on('error', (error, flowObject) => {
+    console.log(error.stack);
+    console.log('Flow encountered an error.');
+});
+
+export default flow.start();
