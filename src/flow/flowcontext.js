@@ -16,4 +16,3 @@ export default class FlowContext {
         return this._states;
     }
 }
-

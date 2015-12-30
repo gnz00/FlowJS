@@ -25,29 +25,29 @@ const decider = new Decider(function(context) {
     }
 });
 
-const ActivityA = new Activity("ActivityA", function (context, store, globals) {
+const ActivityA = new Activity("Standard Activity 1", function (context) {
     context.setState(context.getStates().B);
 });
 
-const ActivityB = new Activity("ActivityB", function (context, store, globals) {
+const ActivityB = new Activity("Failing Activity 2", function (context) {
     throw new RetryableException('Retrying...');
     context.setState(context.getStates().END);
 });
 
-const ActivityC = new Activity("ActivityC", function (context, store, globals) {
+const ActivityC = new Activity("Successful Activity 3", function (context) {
     context.setState(context.getStates().END);
 });
 
-const ActivityD = new Activity("ActivityD", function (context, store, globals) {
+const ActivityD = new Activity("Errored Activity 4", function (context) {
     throw new Error('Random errorrrrr!')
 });
 
-const ActivityE = new Activity("ActivityE", async function (context, store, globals) {
+const ActivityE = new Activity("Asynchronous activity 5 with a custom context", async function (context) {
     await new Promise((resolve, reject) => {
         setTimeout(() => {
-            store.counter++;
+            context.store.counter++;
             context.setState(context.getStates().END);
-            resolve(globals.done());
+            resolve(context.globals.done());
         }, 30);
     });
 });
@@ -140,18 +140,20 @@ describe('Flow', () => {
         });
 
         it('only executes asynchronous activities once', async (done) => {
+            let context = Object.create(new FlowContext(states), {
+                globals: { writable: true, configurable: true, value: { done: done } },
+                store: { writable: true, configurable: true, value: { counter: 0 } }
+            });
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
                         case states.START: return ActivityE;
                     }
                 }),
-                context: new FlowContext(states),
-                globals: { done: done },
-                store: { counter: 0 }
+                context: context,
             });
             await flow.start();
-            assert(flow.getStore().counter === 1);
+            assert(flow.getContext().store.counter === 1);
         });
     });
 

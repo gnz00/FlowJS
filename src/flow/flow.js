@@ -14,11 +14,8 @@ class Flow extends EventEmitter {
         this._numberRetries = 0;
         this._isComplete = false;
         this._retryLimit = options.retryLimit || 3;
-        
-        this.setStore(options.store || {});
+
         this.setContext(this._initialContext);
-        this.setGlobals(options.globals || {});
-        debug(`Created new Flow with options: ${JSON.stringify(options)}`);
     }
 
     isComplete() {
@@ -36,28 +33,6 @@ class Flow extends EventEmitter {
 
     getContext() {
       return this._context;
-    }
-
-    setStore(store) {
-      this._store = Object.assign({}, store);
-      this.emit('storeChanged', store);
-    }
-
-    getStore() {
-      return this._store;
-    }
-
-    setGlobals(globals) {
-        if (this._globals) {
-            throw new Error('Attempted to set immutable property Globals.');
-        } else {
-            debug('Globals was set by reference. Be careful when setting values.');
-            this._globals = globals;
-        }
-    }
-
-    getGlobals() {
-      return this._globals;
     }
 
     currentRetry() {
@@ -89,11 +64,7 @@ class Flow extends EventEmitter {
             try {
                 var activityToExecute = this._decider.decide(this.getContext());
                 debug(`Starting next activity - ${activityToExecute.getName()}`);
-                await activityToExecute.execute([
-                    this.getContext(), 
-                    this.getStore(), 
-                    this.getGlobals()
-                ]);
+                await activityToExecute.execute(this.getContext());
                 debug(`Activity completed - ${activityToExecute.getName()}`);
 
             } catch (e) {
