@@ -26,10 +26,14 @@ const ActivityC = new Activity("ActivityC", async function (context) {
     console.log("Executing ActivityC");
     await new Promise((resolve, reject) => {
         setTimeout(() => {
-            context.setState(context.getStates().END);
             resolve();
-        }, 10000);
+        }, 30);
     });
+    this.emit('complete', context);
+});
+
+ActivityC.on('complete', (context) => {
+    context.setState(context.getStates().END);
 });
 
 const states = {

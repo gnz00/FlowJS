@@ -1,11 +1,13 @@
 import RetryableException from '../flow/retryableException'
 import Debug from 'debug';
+import { EventEmitter } from 'events';
 
 const debug = new Debug('flowjs:activity');
 
-export default class Activity {
+export default class Activity extends EventEmitter {
 
-    constructor(name, executeFn){
+    constructor(name, executeFn) {
+        super();
         this._name = name;
         this._executeFn = executeFn;
     }
