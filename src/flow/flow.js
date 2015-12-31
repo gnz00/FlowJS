@@ -14,6 +14,7 @@ class Flow extends EventEmitter {
         this._numberRetries = 0;
         this._isComplete = false;
         this._retryLimit = options.retryLimit || 3;
+        this._history = [];
 
         this.setContext(this._initialContext);
     }
@@ -39,18 +40,66 @@ class Flow extends EventEmitter {
       return this._numberRetries;
     }
 
-    // Reset the flow to the original context supplied during initialization
-    reset() {
-      this.setContext(this._initialContext);
-      this._isComplete = false;
+    // Jump to a previous step, where 0 is the first step executed
+    reset(step = 1) {
+        step = step > 0 ? step : 1;
+        let stepIndex = step - 1;
+
+        debug(`Jumping to previous step at index ${stepIndex}`);
+
+        if (this._history[stepIndex]) {
+            this.setContext(this._history[stepIndex].context);
+            this._isComplete = this._history[stepIndex].isComplete;
+            this._numberRetries = this._history[stepIndex].numberRetries;
+        } else {
+            this.setContext(this._initialContext);
+            this._numberRetries = 0;
+            this._isComplete = false;
+        }
+
+        this._history = this._history.slice(0, step - 1);
     }
 
-    // Start the workflow with an optional new context
-    async start(context) {
-        if (context) {
-            this.setContext(context);
+    // Replay all the steps in the currently in history
+    async replay() {
+        debug(`Replaying history`);
+        let history = this._history.slice();
+        for (var i = 0; i < history.length; i++) {
+            this.setContext(history[i].context);
+            this._isComplete = history[i].isComplete;
+            this._numberRetries = history[i].numberRetries;
+            await this.step();
         }
-        this._isComplete = false;
+    }
+
+    // Execute a number of previous steps in backwards order
+    async backward(steps) {
+        debug(`Stepping flow backwards ${steps}`);
+
+        if (steps == null || steps > this._history.length) {
+            steps = this._history.length;
+        }
+
+        let records = this._history.slice(this._history.length - steps, this._history.length).reverse();
+        for (var i = 0; i < records.length; i++) {
+            this.setContext(records[i].context);
+            this._isComplete = records[i].isComplete;
+            this._numberRetries = records[i].numberRetries;
+            await this.step();
+        }
+    }
+ 
+    // Execute a specified number of steps
+    async forward(steps) {
+        for (var i = 0; i < steps; i++) {
+            if (!this.isComplete()) {
+                await this.step();
+            }
+        }
+    }
+
+    // Execute workflow until completed
+    async start() {
         while(!this.isComplete()) {
             await this.step();
         }
@@ -58,6 +107,13 @@ class Flow extends EventEmitter {
 
     // Step through the workflow
     async step() {
+
+        this._history.push({
+            context: this.getContext().clone(),
+            numberRetries: this._numberRetries,
+            isComplete: this._isComplete
+        });
+
         debug(`Stepping flow - ${this.getContext().getState().toString()}`);
         if(this.getContext().getState() != this.getContext().getStates().END) {
 

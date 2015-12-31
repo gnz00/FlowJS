@@ -14,6 +14,7 @@ const states = {
     A : Symbol.for("A"),
     B : Symbol.for("B"),
     C : Symbol.for("C"),
+    D : Symbol.for("D"),
     END : Symbol.for("END")
 };
 
@@ -22,6 +23,8 @@ const decider = new Decider(function(context) {
         case states.START: return ActivityA;
         case states.A: return ActivityA;
         case states.B: return ActivityB;
+        case states.C: return ActivityC;
+        case states.D: return ActivityD;
     }
 });
 
@@ -29,20 +32,27 @@ const ActivityA = new Activity("Standard Activity 1", function (context) {
     context.setState(context.getStates().B);
 });
 
-const ActivityB = new Activity("Failing Activity 2", function (context) {
-    throw new RetryableException('Retrying...');
+const ActivityB = new Activity("Standard Activity 2", function (context) {
+    context.setState(context.getStates().C);
+});
+
+const ActivityC = new Activity("Standard Activity 3", function (context) {
+    context.setState(context.getStates().D);
+});
+
+const ActivityD = new Activity("Standard Activity 4", function (context) {
     context.setState(context.getStates().END);
 });
 
-const ActivityC = new Activity("Successful Activity 3", function (context) {
-    context.setState(context.getStates().END);
+const RetryActivity = new Activity("Retry Activity", function (context) {
+    throw new RetryableException;
 });
 
-const ActivityD = new Activity("Errored Activity 4", function (context) {
+const ErrorActivity = new Activity("Errored Activity", function (context) {
     throw new Error('Random errorrrrr!')
 });
 
-const ActivityE = new Activity("Asynchronous activity 5 with a custom context", async function (context) {
+const AsyncActivity = new Activity("Asynchronous activity with a custom context", async function (context) {
     await new Promise((resolve, reject) => {
         setTimeout(() => {
             context.store.counter++;
@@ -82,13 +92,6 @@ describe('Flow', () => {
 
     /** Instance Methods */
     describe('#start()', () => {
-        it('accepts an initial context as the first parameter', async () => {
-            const newContext = new FlowContext(states);
-            await flow.start(newContext);
-            assert(flow.getContext() instanceof FlowContext);
-            // Assert that the context is not copied by reference
-            assert(flow.getContext() !== newContext);
-        });
 
         it('triggers the complete event', async (done) => {
             flow.on('complete', (object) => {
@@ -98,24 +101,24 @@ describe('Flow', () => {
             await flow.start();
         });
 
-        it('triggers the failure event', async (done) => {
-            flow.on('failure', (object) => {
+        it('triggers the success event', async (done) => {
+            flow.on('success', (object) => {
                 assert(object instanceof Flow);
                 done();
             });
             await flow.start();
         });
 
-        it('triggers the success event', async (done) => {
+        it('triggers the failure event', async (done) => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
-                        case states.START: return ActivityC;
+                        case states.START: return RetryActivity;
                     }
                 }),
                 context: new FlowContext(states)
             });
-            flow.on('success', (object) => {
+            flow.on('failure', (object) => {
                 assert(object instanceof Flow);
                 done();
             });
@@ -126,7 +129,7 @@ describe('Flow', () => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
-                        case states.START: return ActivityD;
+                        case states.START: return ErrorActivity;
                     }
                 }),
                 context: new FlowContext(states)
@@ -147,7 +150,7 @@ describe('Flow', () => {
             flow = new Flow({
                 decider: new Decider(function(context) {
                     switch(context.getState()) {
-                        case states.START: return ActivityE;
+                        case states.START: return AsyncActivity;
                     }
                 }),
                 context: context,
@@ -167,24 +170,80 @@ describe('Flow', () => {
 
         it('increases the number of retries when an activity throws a RetryableException', async () => {
             flow = new Flow({
-                decider: decider,
+                decider: new Decider(function(context) {
+                    switch(context.getState()) {
+                        case states.START: return RetryActivity;
+                    }
+                }),
                 context: new FlowContext(states)
             });
             assert(flow.currentRetry() === 0);
             await flow.step();
-            await flow.step(); 
             assert(flow.currentRetry() === 1);
+            await flow.step(); 
+            assert(flow.currentRetry() === 2);
         });
+    });
 
-        it('fails when the retry limit is hit', async (done) => {
-            flow.on('failure', (object) => {
-                assert(object instanceof Flow);
-                done();
-            });
-            for(var i = 0; i < 5; i++) {
-                await flow.step();
-            }
+    describe('#reset()', () => {
+        it('resets the state to a specified step', async () => {
+            assert(flow.getContext().getState() === flow.getContext().getStates().START);
+            await flow.start();
+            assert(flow.getContext().getState() === flow.getContext().getStates().END);
+            await flow.reset(); // Back to START, no execution
+            assert(flow.getContext().getState() === flow.getContext().getStates().START);
+            await flow.start();
+            assert(flow.getContext().getState() === flow.getContext().getStates().END);
         });
+    });
+
+    describe('#backward()', () => {
+        it('steps through the history backwards', async () => {
+            assert(flow.getContext().getState() === flow.getContext().getStates().START);
+            await flow.start();
+            assert(flow.getContext().getState() === flow.getContext().getStates().END);
+            await flow.backward(5); // Back to START, execute => B
+            assert(flow.getContext().getState() === flow.getContext().getStates().B);
+        });
+        it('defaults to the entire history', async () => {
+            assert(flow.getContext().getState() === flow.getContext().getStates().START);
+            await flow.start();
+            assert(flow.getContext().getState() === flow.getContext().getStates().END);
+            await flow.backward(); // Back to START, execute => B
+            assert(flow.getContext().getState() === flow.getContext().getStates().B);
+        });
+        it('defaults to the entire history if parameter is larger than history', async () => {
+            assert(flow.getContext().getState() === flow.getContext().getStates().START);
+            await flow.start();
+            assert(flow.getContext().getState() === flow.getContext().getStates().END);
+            await flow.backward(20); // Back to START, execute => B
+            assert(flow.getContext().getState() === flow.getContext().getStates().B);
+        });
+    });
+
+    it('correctly persists history', async () => {
+        // [START, B, C, D, END] Label
+        // [0    , 1, 2, 3, 4  ] Index
+        // [1    , 2, 3, 4, 5  ] Step #
+        assert(flow.getContext().getState() === flow.getContext().getStates().START);
+        await flow.start();
+        assert(flow.getContext().getState() === flow.getContext().getStates().END);
+        await flow.backward(); // Back to START, execute START, current state is B
+        assert(flow.getContext().getState() === flow.getContext().getStates().B);
+        await flow.reset(); // Back to initial state
+        assert(flow.getContext().getState() === flow.getContext().getStates().START);
+        await flow.forward(4); // Execute A, B, C, D, current state is END
+        assert(flow.getContext().getState() === flow.getContext().getStates().END);
+        await flow.reset(3); // Reset to C, history = [START, B] and state  = C
+        assert(flow.getContext().getState() === flow.getContext().getStates().C);
+        await flow.start();
+        assert(flow.getContext().getState() === flow.getContext().getStates().END);
+        await flow.reset(-1);
+        assert(flow.getContext().getState() === flow.getContext().getStates().START);
+        await flow.start();
+        assert(flow.getContext().getState() === flow.getContext().getStates().END);
+        await flow.replay();
+        assert(flow.getContext().getState() === flow.getContext().getStates().END);
     });
 
 });

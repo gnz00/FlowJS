@@ -15,4 +15,10 @@ export default class FlowContext {
     getStates() {
         return this._states;
     }
+
+    clone() {
+        let context = new FlowContext(this.getStates());
+        context.setState(this._currentState);
+        return context;
+    }
 }
